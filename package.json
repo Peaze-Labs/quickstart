@@ -3,8 +3,7 @@
   "version": "1.0.0",
   "description": "Complete example from the Peaze docs Quickstart guide",
   "scripts": {
-    "start": "ts-node quickstart.ts",
-    "quickstart": "ts-node quickstart.ts"
+    "start": "ts-node quickstart.ts"
   },
   "author": "The Peaze Team",
   "license": "MIT",
