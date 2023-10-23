@@ -1,62 +1,69 @@
 import axios from 'axios';
 import { Interface, Wallet, parseUnits } from 'ethers';
-import { addresses } from './utils/config';
-import { config } from 'dotenv';
+import { getAddresses } from './utils/config';
 import { getUserInputYN } from './utils/input';
+import { config } from 'dotenv';
 config();
 
-const SRC_CHAIN_ID = 137; // 1 - Ethereum, 137 - Polygon, 42161 - Arbitrum
-const DST_CHAIN_ID = 137; // 10 - Optimism, 8453 - Base
-const DST_USDC_ADDRESS = addresses[DST_CHAIN_ID].USDC; // USDC on destination
-const DST_WUSDC_ADDRESS = addresses[DST_CHAIN_ID].WUSDC; // WUSDC on destination
-const USDC_TO_SEND = '0.01';
+// Get settings from environment variables (.env file)
+const SRC_CHAIN_ID = Number(process.env.SRC_CHAIN_ID);
+const DST_CHAIN_ID = Number(process.env.DST_CHAIN_ID);
+const USDC_TO_WRAP = String(process.env.USDC_TO_WRAP);
 
+// Get USDC and WUSDC addresses on the destination chain
+const dstAddresses = getAddresses(DST_CHAIN_ID);
+
+// Define some helper constants
+const isSingleChain = SRC_CHAIN_ID === DST_CHAIN_ID;
+const endpointPrefix = isSingleChain ? '/v1/single-chain' : '/v1/cross-chain';
+
+// Initialize contract interfaces for USDC and WUSDC (to encode tx data)
 const usdcTokenInterface = new Interface(['function approve(address,uint256)']);
 const wUsdcTokenInterface = new Interface(['function mint(uint256)']);
 
+// Initialize the wallet to sign and fund the tx with USDC
 const wallet = new Wallet(process.env.WALLET_PRIVATE_KEY!); // set it in .env
 
+// Initialize the axios client
 const axiosClient = axios.create({
   baseURL: 'https://api.peaze.com/api',
   headers: {
     'Content-Type': 'application/json',
-    'X-Api-Key': process.env.PEAZE_API_KEY, // set PEAZE_API_KEY in .env
+    'X-Api-Key': process.env.PEAZE_API_KEY,
   },
 });
 
-const isSingleChain = SRC_CHAIN_ID === DST_CHAIN_ID;
-const endpointPrefix = isSingleChain ? '/v1/single-chain/' : '/v1/cross-chain/';
-
+// Estimates the cost of the transaction by calling the /estimate endpoint
 async function estimateTransaction() {
   // Convert the USDC amount to *destination* chain decimals (6 on supported chains)
-  const tokenAmount = parseUnits(USDC_TO_SEND, 6);
+  const tokenAmount = parseUnits(USDC_TO_WRAP, 6);
 
   // Encode a tx to approve the WUSDC contract to transfer USDC from the caller
   const approvalTx = {
-    to: DST_USDC_ADDRESS,
+    to: dstAddresses.USDC,
     data: usdcTokenInterface.encodeFunctionData('approve', [
-      DST_WUSDC_ADDRESS,
+      dstAddresses.WUSDC,
       tokenAmount,
     ]),
   };
 
   // Encode a tx to mint WUSDC tokens
   const mintTx = {
-    to: DST_WUSDC_ADDRESS,
+    to: dstAddresses.WUSDC,
     data: wUsdcTokenInterface.encodeFunctionData('mint', [tokenAmount]),
     value: 0n.toString(), // can be omitted here, since this transaction has value 0
   };
 
   // Specify that we expect to receive WUSDC tokens as a result of the tx
-  const expectedERC20Tokens = [DST_WUSDC_ADDRESS];
+  const expectedERC20Tokens = [dstAddresses.WUSDC];
 
   // Send the request to the estimate endpoint
-  const { data } = await axiosClient.post(`${endpointPrefix}estimate`, {
+  const { data } = await axiosClient.post(`${endpointPrefix}/estimate`, {
     sourceChain: SRC_CHAIN_ID,
     destinationChain: DST_CHAIN_ID,
     userAddress: wallet.address, // address signing and funding the tx with USDC
-    tokenAmount: tokenAmount.toString(), // amount of USDC to fund the tx with (in decimals)
-    transactions: [approvalTx, mintTx], // array of transactions to execute
+    tokenAmount: tokenAmount.toString(), // USDC amount to fund the tx with (in dst decimals)
+    transactions: [approvalTx, mintTx], // array of individual txs to execute in order
     expectedERC20Tokens, // array of ERC-20 tokens we expect to receive as a result of the tx
   });
 
@@ -67,16 +74,16 @@ async function main() {
   console.log('-'.repeat(60));
   console.log(`Quickstart tx from chain ${SRC_CHAIN_ID} to ${DST_CHAIN_ID}`);
   console.log('-'.repeat(60) + '\n');
-  
+
   console.log('Getting tx estimate...');
 
+  // Get a quote for the transaction
   const { quote, costSummary } = await estimateTransaction();
   console.log(`Quote data:\n${JSON.stringify(quote, null, 2)}\n`);
 
-  // Extract typed data to sign
+  // Extract typed data to sign and generate signatures
   const { peazeTypedData, permitTypedData } = quote;
 
-  // Generate required signatures
   const signatures = {
     peazeSignature: await wallet.signTypedData(
       peazeTypedData.domain,
@@ -101,7 +108,7 @@ async function main() {
 
   // Send the request to the execute endpoint
   console.log('Executing transaction...');
-  const { data } = await axiosClient.post(`${endpointPrefix}execute`, {
+  const { data } = await axiosClient.post(`${endpointPrefix}/execute`, {
     quote,
     signatures,
   });

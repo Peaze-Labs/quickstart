@@ -16,3 +16,9 @@ export const addresses = {
     WUSDC: '0x31700970b666d04b316Cfb46138cae5787A4FF9D',
   },
 } as const;
+
+export function getAddresses(chainId: number) {
+  const res = addresses[chainId as keyof typeof addresses];
+  if (res) return res;
+  throw new Error(`Addresses for chain ${chainId} not found`);
+}
