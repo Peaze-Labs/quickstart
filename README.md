@@ -29,7 +29,7 @@ Then fill in your private key in `.env`.
 ### Running the demo
 
 ```sh
-ts-node quickstart.ts
+npx ts-node quickstart.ts
 ```
 
 This will run a single-chain demo transaction of wrapping 0.01 USDC into WUSDC. To run a cross-chain transaction, simply replace the value of `DST_CHAIN_ID` with your desired chain ID in `.env`.
