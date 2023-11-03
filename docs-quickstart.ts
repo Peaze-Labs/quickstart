@@ -10,7 +10,7 @@ const USDC_TO_WRAP = '0.01'; // 0.01 USDC
 // USDC and WUSDC addresses on Polygon
 const dstAddresses = {
   USDC: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
-  WUSDC: '0x9D047586a25267b426949c77CCdE0B4D0D3c5D92',
+  WUSDC: '0x47D06255b7F0b615ac24CE1477E3b0977dD2e979',
 };
 
 // Define some helper constants (useful if you want to try a cross-chain tx)
