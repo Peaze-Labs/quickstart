@@ -1,9 +1,9 @@
 {
-  "name": "azuro-protocol",
+  "name": "quickstart",
   "version": "1.0.0",
-  "description": "Complete example of interacting with the Azuro Protocol with Peaze",
+  "description": "Complete example from the Peaze docs Quickstart guide",
   "scripts": {
-    "start": "ts-node docs-quickstart.ts"
+    "start": "ts-node quickstart.ts"
   },
   "author": "The Peaze Team",
   "license": "MIT",

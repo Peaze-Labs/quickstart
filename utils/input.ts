@@ -59,11 +59,3 @@ export async function getUserInputYN(prompt: string): Promise<boolean> {
   }
   return answer.toLowerCase()[0] === 'y';
 }
-
-export async function getUserInputAmount(prompt: string): Promise<string> {
-  let answer = '';
-  while (answer === '') {
-    answer = await getUserInput(prompt)
-  }
-  return answer;
-}
