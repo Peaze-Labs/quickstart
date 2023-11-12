@@ -82,7 +82,7 @@ async function main() {
   console.log(`Quote data:\n${JSON.stringify(quote, null, 2)}\n`);
 
   // Extract typed data to sign and generate signatures
-  const { peazeTypedData, permitTypedData } = quote;
+  const { peazeTypedData, fundingTypedData } = quote;
 
   const signatures = {
     peazeSignature: await wallet.signTypedData(
@@ -90,10 +90,10 @@ async function main() {
       peazeTypedData.types,
       peazeTypedData.message,
     ),
-    permitSignature: await wallet.signTypedData(
-      permitTypedData.domain,
-      permitTypedData.types,
-      permitTypedData.message,
+    fundingSignature: await wallet.signTypedData(
+      fundingTypedData.domain,
+      fundingTypedData.types,
+      fundingTypedData.message,
     ),
   };
 
